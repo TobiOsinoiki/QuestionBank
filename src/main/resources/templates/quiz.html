@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz | Online Question Bank System</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="quiz">
+  <div class="content-layout">
+    <div class="page-shell">
+      <header class="topbar">
+        <a href="/home.html" class="brand">
+          <img class="brand-mark" src="/images/quiz-logo.jpg" alt="Quiz logo">
+          <span class="brand-text">
+            <span>Online Question Bank</span>
+            <small>Return home</small>
+          </span>
+        </a>
+        <div class="nav-actions">
+          <a class="btn btn-secondary" href="/dashboard.html">Dashboard</a>
+          <button class="btn btn-danger" type="button" data-action="logout">Logout</button>
+        </div>
+      </header>
+
+      <main class="card quiz-card">
+        <div class="header-row">
+          <div>
+            <span class="eyebrow">Assessment</span>
+            <h1 class="page-title">Take Quiz</h1>
+            <p class="page-subtitle">Choose one answer for each question, then submit when you are finished.</p>
+          </div>
+          <div class="status-chip success" id="questionCount">0 questions</div>
+        </div>
+
+        <div id="quizContainer" class="question-list">
+          <div class="loading-state">Loading quiz questions...</div>
+        </div>
+
+        <div class="form-message" id="quizMessage" aria-live="polite"></div>
+
+        <div class="inline-actions">
+          <button id="submitQuizButton" class="btn btn-primary" type="button">Submit Answers</button>
+          <a class="btn btn-outline" href="/dashboard.html">Cancel</a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
