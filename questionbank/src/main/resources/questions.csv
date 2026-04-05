@@ -1,0 +1,6 @@
+subject,topic,difficulty,questionText,optionA,optionB,optionC,optionD,correctAnswer
+JAVA,Variables,EASY,"What will be the output? int x = 5; System.out.println(x);",5,0,Error,null,A
+JAVA,Variables,EASY,"Which keyword is used to declare a constant variable?",final,const,static,var,A
+JAVA,Data Types,EASY,"Which data type stores decimal values?",int,float,boolean,char,B
+JAVA,Operators,EASY,"What is the result of 10 % 3?",1,3,0,10,A
+JAVA,Control Flow,EASY,"What will be printed? if(true){System.out.println(""Yes"");}",No,Yes,Error,Nothing,B

@@ -1,0 +1,57 @@
+[
+  {
+    "subject": "JAVA",
+    "topic": "Variables",
+    "difficulty": "EASY",
+    "questionText": "What will be the output?\nint x = 5;\nSystem.out.println(x);",
+    "optionA": "5",
+    "optionB": "0",
+    "optionC": "Error",
+    "optionD": "null",
+    "correctAnswer": "A"
+  },
+  {
+    "subject": "JAVA",
+    "topic": "Variables",
+    "difficulty": "EASY",
+    "questionText": "Which keyword is used to declare a constant variable?",
+    "optionA": "final",
+    "optionB": "const",
+    "optionC": "static",
+    "optionD": "var",
+    "correctAnswer": "A"
+  },
+  {
+    "subject": "JAVA",
+    "topic": "Data Types",
+    "difficulty": "EASY",
+    "questionText": "Which data type stores decimal values?",
+    "optionA": "int",
+    "optionB": "float",
+    "optionC": "boolean",
+    "optionD": "char",
+    "correctAnswer": "B"
+  },
+  {
+    "subject": "JAVA",
+    "topic": "Operators",
+    "difficulty": "EASY",
+    "questionText": "What is the result of 10 % 3?",
+    "optionA": "1",
+    "optionB": "3",
+    "optionC": "0",
+    "optionD": "10",
+    "correctAnswer": "A"
+  },
+  {
+    "subject": "JAVA",
+    "topic": "Control Flow",
+    "difficulty": "EASY",
+    "questionText": "What will be printed?\nif(true){System.out.println(\"Yes\");}",
+    "optionA": "No",
+    "optionB": "Yes",
+    "optionC": "Error",
+    "optionD": "Nothing",
+    "correctAnswer": "B"
+  }
+]
