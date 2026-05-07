@@ -1,0 +1,5 @@
+package com.tobi.qbank.config;
+
+public class WebMvcConfigurer {
+
+}

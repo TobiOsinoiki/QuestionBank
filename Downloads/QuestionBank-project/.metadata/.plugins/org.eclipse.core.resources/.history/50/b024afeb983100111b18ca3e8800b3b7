@@ -1,0 +1,87 @@
+package com.tobi.qbank.controller;
+
+import com.tobi.qbank.entity.Question;
+import com.tobi.qbank.repository.QuestionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api")
+public class QuestionController {
+
+    @Autowired
+    private QuestionRepository questionRepository;
+
+    /**
+     * Returns 10 random questions WITHOUT the correct answer exposed.
+     * Frontend receives: id, questionText, options (A-D as label/value pairs)
+     */
+    @GetMapping("/questions/random")
+    public ResponseEntity<?> getRandomQuestions() {
+        List<Question> questions = questionRepository.findRandom10();
+
+        if (questions.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<Map<String, Object>> response = questions.stream().map(q -> Map.<String, Object>of(
+                "id",   q.getId(),
+                "text", q.getQuestionText(),
+                "options", List.of(
+                        Map.of("label", q.getOptionA(), "value", "A"),
+                        Map.of("label", q.getOptionB(), "value", "B"),
+                        Map.of("label", q.getOptionC(), "value", "C"),
+                        Map.of("label", q.getOptionD(), "value", "D")
+                )
+        )).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Accepts submitted answers, grades them, and returns score.
+     * Expected body: { "answers": [ { "questionId": 1, "answer": "A" }, ... ] }
+     */
+    @PostMapping("/submit")
+    public ResponseEntity<?> submitQuiz(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> answers = (List<Map<String, Object>>) body.get("answers");
+
+        if (answers == null || answers.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "No answers submitted."));
+        }
+
+        int correct = 0;
+        int total   = answers.size();
+
+        for (Map<String, Object> answer : answers) {
+            Long questionId     = Long.valueOf(answer.get("questionId").toString());
+            String submitted    = answer.get("answer").toString();
+
+            questionRepository.findById(questionId).ifPresent(q -> {});
+
+            Question q = questionRepository.findById(questionId).orElse(null);
+            if (q != null && q.getCorrectAnswer().equalsIgnoreCase(submitted)) {
+                correct++;
+            }
+        }
+
+        double percentage = total > 0 ? (correct * 100.0 / total) : 0;
+        boolean passed    = percentage >= 50;
+
+        return ResponseEntity.ok(Map.of(
+                "correctAnswers",  correct,
+                "totalQuestions",  total,
+                "percentage",      Math.round(percentage),
+                "passed",          passed,
+                "message",         passed
+                        ? "Great work. You passed the quiz."
+                        : "Keep practicing and try again."
+        ));
+    }
+}

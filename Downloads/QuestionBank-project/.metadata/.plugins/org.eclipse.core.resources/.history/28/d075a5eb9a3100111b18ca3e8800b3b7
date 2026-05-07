@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Online Question Bank System</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="dashboard">
+  <div class="content-layout">
+    <div class="page-shell">
+      <header class="topbar">
+        <a href="/home.html" class="brand">
+          <img class="brand-mark" src="/images/quiz-logo.jpg" alt="Quiz logo">
+          <span class="brand-text">
+            <span>Online Question Bank</span>
+            <small>Return home</small>
+          </span>
+        </a>
+        <div class="nav-actions">
+          <a class="btn btn-secondary" href="/quiz.html">Start Quiz</a>
+          <button class="btn btn-danger" type="button" data-action="logout">Logout</button>
+        </div>
+      </header>
+
+      <main class="dashboard-grid">
+        <section class="panel">
+          <div class="welcome-banner">
+            <span class="eyebrow">Dashboard</span>
+            <h1 class="page-title">Welcome, <span id="welcomeName">User</span></h1>
+            <p class="welcome-note">Manage your session, begin a quiz, and move through the application from one clean workspace.</p>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <strong>Practice Ready</strong>
+              <span>Your account is set up for quiz access and score tracking.</span>
+            </div>
+            <div class="summary-item">
+              <strong>Smooth Flow</strong>
+              <span>Move between dashboard, quiz, and result pages without clutter.</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <span class="eyebrow">Actions</span>
+          <h2 class="section-title">Start your next quiz</h2>
+          <p class="page-subtitle">Use the main action below to begin immediately, or log out when you are done.</p>
+          <div class="inline-actions">
+            <a class="btn btn-primary" href="/quiz.html">Start Quiz</a>
+            <button class="btn btn-outline" type="button" data-action="logout">Logout</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+package com.tobi.qbank.controller;
+
+import com.tobi.qbank.entity.User;
+import com.tobi.qbank.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api")
+public class AuthController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+        String fullName = body.get("fullName");
+        String email    = body.get("email");
+        String password = body.get("password");
+
+        if (fullName == null || fullName.isBlank() ||
+            email    == null || email.isBlank()    ||
+            password == null || password.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "All fields are required."));
+        }
+
+        if (userService.emailExists(email)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Email already registered."));
+        }
+
+        User user = new User();
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPassword(password); // hashed inside UserService.saveUser()
+        userService.saveUser(user);
+
+        return ResponseEntity.ok(Map.of("message", "Registration successful."));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+        String email    = body.get("email");
+        String password = body.get("password");
+
+        Optional<User> optionalUser = userService.findByEmail(email);
+
+        if (optionalUser.isEmpty() ||
+            !userService.checkPassword(password, optionalUser.get().getPassword())) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("message", "Invalid email or password."));
+        }
+
+        User user = optionalUser.get();
+
+        // Simple session token — replace with JWT if the project grows
+        String token = UUID.randomUUID().toString();
+
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "user", Map.of(
+                        "id",       user.getId(),
+                        "fullName", user.getFullName(),
+                        "email",    user.getEmail()
+                )
+        ));
+    }
+    
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        // TODO: implement real OTP email sending
+        return ResponseEntity.ok(Map.of("message", "OTP sent successfully."));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> body) {
+        // TODO: implement real OTP verification
+        return ResponseEntity.ok(Map.of("message", "OTP verified."));
+    }
+}

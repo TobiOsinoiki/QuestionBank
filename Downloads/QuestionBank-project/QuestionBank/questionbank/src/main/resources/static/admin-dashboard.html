@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard · QBank</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="page-shell content-layout">
+
+    <header class="topbar">
+      <a href="/admin-dashboard.html" class="brand">
+        <img src="/images/quiz-logo.jpg" alt="QBank" class="brand-mark" onerror="this.style.display='none'" />
+        <div class="brand-text">
+          <span>QBank</span>
+          <small>Admin Console</small>
+        </div>
+      </a>
+      <nav class="nav-actions">
+        <a href="/admin-questions.html" class="btn btn-secondary">Questions</a>
+        <a href="/admin-users.html"     class="btn btn-secondary">Users</a>
+        <a href="/admin-attempts.html"  class="btn btn-secondary">Attempts</a>
+        <a href="/dashboard.html"       class="btn btn-outline">User View</a>
+        <button id="logoutBtn" class="btn btn-danger" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <!-- ── Welcome ──────────────────────────────────────── -->
+    <section class="welcome-banner">
+      <span class="eyebrow">Admin overview</span>
+      <h1 class="page-title">Welcome back, <span id="adminName">Admin</span></h1>
+      <p class="welcome-note">Monitor activity, review question performance, and keep your bank healthy.</p>
+    </section>
+
+    <section class="metric-strip" id="metricStrip" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+      <div class="metric-card">
+        <strong id="mTotalQuizzes">—</strong>
+        <span>Total quizzes taken</span>
+      </div>
+      <div class="metric-card">
+        <strong id="mTotalUsers">—</strong>
+        <span>Registered users</span>
+      </div>
+      <div class="metric-card">
+        <strong id="mTotalQuestions">—</strong>
+        <span>Questions in bank</span>
+      </div>
+      <div class="metric-card">
+        <strong id="mFlagged">—</strong>
+        <span>Flagged questions</span>
+      </div>
+    </section>
+
+    <section class="summary-grid" style="margin-top: 20px;">
+      <div class="summary-item">
+        <strong id="kpiAvgScore">—</strong>
+        <span>Average score across all attempts</span>
+      </div>
+      <div class="summary-item">
+        <strong id="kpiPassRate">—</strong>
+        <span>Pass rate (≥ 50%)</span>
+      </div>
+    </section>
+
+    <section class="dashboard-grid" style="margin-top: 24px;">
+
+      <div class="card">
+        <span class="eyebrow">Activity</span>
+        <h2 class="section-title">Quizzes per day · last 14 days</h2>
+        <div style="position: relative; height: 280px; margin-top: 12px;">
+          <canvas id="chartActivity"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="eyebrow">Difficulty mix</span>
+        <h2 class="section-title">Attempts by difficulty</h2>
+        <div style="position: relative; height: 280px; margin-top: 12px;">
+          <canvas id="chartDifficulty"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <section class="dashboard-grid" style="margin-top: 24px;">
+
+      <div class="card">
+        <span class="eyebrow">By difficulty</span>
+        <h2 class="section-title">Question performance</h2>
+        <div id="difficultyTable" class="stat-list" style="margin-top: 16px;">
+          <p class="loading-state">Loading...</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="eyebrow">By topic</span>
+        <h2 class="section-title">Topic breakdown</h2>
+        <div id="topicTable" class="stat-list" style="margin-top: 16px;">
+          <p class="loading-state">Loading...</p>
+        </div>
+      </div>
+
+    </section>
+
+    <p class="footer-note" style="text-align: center; margin-top: 32px;">
+      QBank Admin · Data refreshes on page load.
+    </p>
+  </div>
+
+  <script>
+    // ── Auth gate ────────────────────────────────────────
+ const token = localStorage.getItem("qbankToken");
+const user  = JSON.parse(localStorage.getItem("qbankUser") || "{}");
+
+const role = user.role;
+const name = user.fullName || "Admin";
+    if (!token || role !== "ROLE_ADMIN") {
+      window.location.href = "/login.html";
+    }
+
+    document.getElementById("adminName").textContent = name;
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "/login.html";
+    });
+
+    async function loadAnalytics() {
+      try {
+        const res = await fetch("/api/admin/analytics", {
+          headers: { "X-Admin-Token": token }
+        });
+        if (!res.ok) throw new Error("Unable to load analytics (" + res.status + ").");
+        const data = await res.json();
+        renderMetrics(data);
+        renderActivityChart(data.quizzesByDay || {});
+        renderDifficultyChart(data.attemptsByDifficulty || {});
+        renderDifficultyTable(data.difficultyStats || []);
+        renderTopicTable(data.topicBreakdown || []);
+      } catch (err) {
+        console.error(err);
+        document.getElementById("difficultyTable").innerHTML =
+          '<p class="empty-state">' + err.message + '</p>';
+        document.getElementById("topicTable").innerHTML =
+          '<p class="empty-state">Could not load topic data.</p>';
+      }
+    }
+
+    function renderMetrics(d) {
+      document.getElementById("mTotalQuizzes")   .textContent = d.totalQuizzes ?? 0;
+      document.getElementById("mTotalUsers")     .textContent = d.totalUsers ?? 0;
+      document.getElementById("mTotalQuestions") .textContent = d.totalQuestions ?? 0;
+      document.getElementById("mFlagged")        .textContent = d.flaggedQuestions ?? 0;
+      document.getElementById("kpiAvgScore")     .textContent = (d.avgScore ?? 0) + "%";
+      document.getElementById("kpiPassRate")     .textContent = (d.passRate ?? 0) + "%";
+    }
+
+    function renderActivityChart(byDay) {
+      const labels = Object.keys(byDay).sort();
+      const values = labels.map(k => byDay[k]);
+
+  
+      const today = new Date();
+      const padded = {};
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        padded[key] = byDay[key] || 0;
+      }
+
+      new Chart(document.getElementById("chartActivity"), {
+        type: "line",
+        data: {
+          labels: Object.keys(padded),
+          datasets: [{
+            label: "Quizzes",
+            data: Object.values(padded),
+            borderColor: "#4f46e5",
+            backgroundColor: "rgba(79, 70, 229, 0.12)",
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointBackgroundColor: "#4f46e5"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    }
+
+    function renderDifficultyChart(byDiff) {
+      const order = ["EASY", "MEDIUM", "HARD"];
+      const labels = order.filter(k => byDiff[k] != null);
+      const values = labels.map(k => byDiff[k]);
+
+      new Chart(document.getElementById("chartDifficulty"), {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: ["#22c55e", "#f59e0b", "#dc2626"],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          cutout: "62%"
+        }
+      });
+    }
+
+    function renderDifficultyTable(rows) {
+      const el = document.getElementById("difficultyTable");
+      if (!rows.length) {
+        el.innerHTML = '<p class="empty-state">No difficulty data yet.</p>';
+        return;
+      }
+      el.innerHTML = rows.map(r => `
+        <div class="stat-line">
+          <strong>${escapeHtml(r.difficulty || "—")}</strong>
+          <span>${r.questionCount} question${r.questionCount === 1 ? "" : "s"} · avg accuracy ${r.avgAccuracy}%</span>
+        </div>
+      `).join("");
+    }
+
+    function renderTopicTable(rows) {
+      const el = document.getElementById("topicTable");
+      if (!rows.length) {
+        el.innerHTML = '<p class="empty-state">No topic data yet.</p>';
+        return;
+      }
+   
+      el.innerHTML = rows.slice(0, 8).map(r => `
+        <div class="stat-line">
+          <strong>${escapeHtml(r.topic || "—")}</strong>
+          <span>${r.questionCount} question${r.questionCount === 1 ? "" : "s"} · avg accuracy ${r.avgAccuracy}%</span>
+        </div>
+      `).join("");
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+    }
+
+    loadAnalytics();
+  </script>
+</body>
+</html>

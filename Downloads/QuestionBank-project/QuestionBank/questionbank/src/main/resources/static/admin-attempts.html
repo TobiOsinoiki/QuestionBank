@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Attempts · QBank Admin</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="page-shell content-layout">
+
+    <header class="topbar">
+      <a href="/admin-dashboard.html" class="brand">
+        <img src="/logo.png" alt="QBank" class="brand-mark" onerror="this.style.display='none'" />
+        <div class="brand-text">
+          <span>QBank</span>
+          <small>Admin Console</small>
+        </div>
+      </a>
+      <nav class="nav-actions">
+        <a href="/admin-dashboard.html" class="btn btn-secondary">Dashboard</a>
+        <a href="/admin-questions.html" class="btn btn-secondary">Questions</a>
+        <a href="/admin-users.html"     class="btn btn-secondary">Users</a>
+        <button id="logoutBtn" class="btn btn-danger" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <section class="welcome-banner">
+      <span class="eyebrow">Activity log</span>
+      <h1 class="page-title">All quiz attempts</h1>
+      <p class="welcome-note">Browse every attempt across every user. Filter to find what you're after.</p>
+    </section>
+
+    <section class="metric-strip" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+      <div class="metric-card"><strong id="mTotal">—</strong><span>Total attempts</span></div>
+      <div class="metric-card"><strong id="mPassed">—</strong><span>Passed</span></div>
+      <div class="metric-card"><strong id="mAvg">—</strong><span>Average score</span></div>
+      <div class="metric-card"><strong id="mToday">—</strong><span>Today</span></div>
+    </section>
+
+    <section class="card" style="margin-top: 24px;">
+      <span class="eyebrow">Filters</span>
+      <div style="display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;">
+        <select id="filterDifficulty" style="padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;">
+          <option value="">All difficulties</option>
+          <option value="EASY">Easy</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HARD">Hard</option>
+          <option value="MIXED">Mixed</option>
+        </select>
+        <select id="filterMode" style="padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;">
+          <option value="">All modes</option>
+          <option value="EXAM">Exam</option>
+          <option value="PRACTICE">Practice</option>
+        </select>
+        <select id="filterResult" style="padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;">
+          <option value="">All results</option>
+          <option value="passed">Passed</option>
+          <option value="failed">Failed</option>
+        </select>
+        <input id="searchBox" type="text" placeholder="Search by user name or email…"
+               style="flex: 1; min-width: 240px; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;" />
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 24px;">
+      <h2 class="section-title"><span id="resultCount">—</span> attempts</h2>
+      <div id="attemptTable" style="margin-top: 16px; overflow-x: auto;">
+        <p class="loading-state">Loading...</p>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+  const token = localStorage.getItem("qbankToken");
+  const user  = JSON.parse(localStorage.getItem("qbankUser") || "{}");
+  const role  = user.role;
+
+  if (!token || role !== "ROLE_ADMIN") {
+    window.location.href = "/login.html";
+  }
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "/login.html";
+    });
+
+    let allAttempts = [];
+
+    async function loadAttempts() {
+      try {
+        const res = await fetch("/api/admin/attempts", { headers: { "X-Admin-Token": token } });
+        if (!res.ok) throw new Error("Unable to load attempts (" + res.status + ").");
+        allAttempts = await res.json();
+        renderMetrics();
+        applyFilters();
+      } catch (err) {
+        document.getElementById("attemptTable").innerHTML =
+          '<p class="empty-state">' + err.message + '</p>';
+      }
+    }
+
+    function renderMetrics() {
+      const total    = allAttempts.length;
+      const passed   = allAttempts.filter(a => a.passed).length;
+      const avg      = total ? Math.round(allAttempts.reduce((s, a) => s + (a.percentage || 0), 0) / total * 10) / 10 : 0;
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const today    = allAttempts.filter(a => (a.attemptedAt || "").slice(0, 10) === todayKey).length;
+
+      document.getElementById("mTotal").textContent  = total;
+      document.getElementById("mPassed").textContent = passed;
+      document.getElementById("mAvg").textContent    = avg + "%";
+      document.getElementById("mToday").textContent  = today;
+    }
+
+    function applyFilters() {
+      const diff   = document.getElementById("filterDifficulty").value;
+      const mode   = document.getElementById("filterMode").value;
+      const result = document.getElementById("filterResult").value;
+      const q      = document.getElementById("searchBox").value.toLowerCase().trim();
+
+      let filtered = allAttempts;
+      if (diff)   filtered = filtered.filter(a => (a.difficulty || "").toUpperCase() === diff);
+      if (mode)   filtered = filtered.filter(a => (a.mode || "").toUpperCase() === mode);
+      if (result === "passed") filtered = filtered.filter(a => a.passed);
+      if (result === "failed") filtered = filtered.filter(a => !a.passed);
+      if (q) filtered = filtered.filter(a =>
+        (a.userName || "").toLowerCase().includes(q) ||
+        (a.userEmail || "").toLowerCase().includes(q)
+      );
+
+      renderTable(filtered);
+    }
+
+    function renderTable(rows) {
+      document.getElementById("resultCount").textContent = rows.length;
+      const el = document.getElementById("attemptTable");
+      if (!rows.length) {
+        el.innerHTML = '<p class="empty-state">No attempts match your filters.</p>';
+        return;
+      }
+      const sorted = [...rows].sort((a, b) =>
+        (b.attemptedAt || "").localeCompare(a.attemptedAt || ""));
+
+      el.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="text-align: left; border-bottom: 2px solid #e5e7eb;">
+              <th style="padding: 10px 8px;">When</th>
+              <th style="padding: 10px 8px;">User</th>
+              <th style="padding: 10px 8px;">Mode</th>
+              <th style="padding: 10px 8px;">Difficulty</th>
+              <th style="padding: 10px 8px; text-align: right;">Score</th>
+              <th style="padding: 10px 8px; text-align: right;">Weighted</th>
+              <th style="padding: 10px 8px;">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map(a => `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 8px; color: #6b7280;">${formatDate(a.attemptedAt)}</td>
+                <td style="padding: 10px 8px;">
+                  <div><strong>${escapeHtml(a.userName || "—")}</strong></div>
+                  <div style="color:#6b7280; font-size:12px;">${escapeHtml(a.userEmail || "")}</div>
+                </td>
+                <td style="padding: 10px 8px;">${escapeHtml(a.mode || "—")}</td>
+                <td style="padding: 10px 8px;">${escapeHtml(a.difficulty || "—")}</td>
+                <td style="padding: 10px 8px; text-align: right;">
+                  ${a.correctAnswers ?? 0}/${a.questionCount ?? 0}
+                  <div style="color:#6b7280; font-size:12px;">${(a.percentage ?? 0).toFixed(1)}%</div>
+                </td>
+                <td style="padding: 10px 8px; text-align: right;">${a.weightedScore ?? 0}</td>
+                <td style="padding: 10px 8px;">
+                  <span style="padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                    background: ${a.passed ? '#dcfce7' : '#fee2e2'};
+                    color: ${a.passed ? '#166534' : '#991b1b'};">
+                    ${a.passed ? 'Passed' : 'Failed'}
+                  </span>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function formatDate(s) {
+      if (!s) return "—";
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return s;
+      return d.toLocaleString();
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    }
+
+    ["filterDifficulty", "filterMode", "filterResult", "searchBox"].forEach(id => {
+      document.getElementById(id).addEventListener("input", applyFilters);
+      document.getElementById(id).addEventListener("change", applyFilters);
+    });
+
+    loadAttempts();
+  </script>
+</body>
+</html>

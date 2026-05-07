@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard | Online Question Bank System</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="leaderboard">
+  <div class="content-layout">
+    <div class="page-shell">
+      <header class="topbar">
+        <a href="/home.html" class="brand">
+          <img class="brand-mark" src="/images/quiz-logo.jpg" alt="Quiz logo">
+          <span class="brand-text">
+            <span>Online Question Bank</span>
+            <small>Return home</small>
+          </span>
+        </a>
+        <nav class="nav-actions">
+          <a class="btn btn-secondary" href="/dashboard.html">Dashboard</a>
+          <a class="btn btn-secondary" href="/quiz.html">Take Quiz</a>
+          <a class="btn btn-secondary" href="/history.html">History</a>
+          <button class="btn btn-danger" type="button" data-action="logout">Logout</button>
+        </nav>
+      </header>
+
+      <main class="card quiz-card">
+        <span class="eyebrow">Rankings</span>
+        <h1 class="page-title">Leaderboard</h1>
+        <p class="page-subtitle">Top performers ranked by best weighted score. Harder difficulties count for more.</p>
+
+        <div id="leaderboardContainer">
+          <div class="loading-state">Loading leaderboard...</div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

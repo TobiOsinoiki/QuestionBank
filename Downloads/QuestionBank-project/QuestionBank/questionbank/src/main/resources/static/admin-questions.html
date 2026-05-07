@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Question Bank · QBank Admin</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .subject-tab { min-height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--border);
+      background: #fff; font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; color: var(--text); }
+    .subject-tab:hover { border-color: var(--primary); color: var(--primary); }
+    .subject-tab.active { background: #1e3a8a; border-color: #1e3a8a; color: #fff; }
+    .topic-stat-bar {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft);
+      margin-bottom: 8px;
+    }
+    .topic-stat-name { font-weight: 600; font-size: 0.88rem; min-width: 140px; }
+    .topic-stat-bar-track { flex: 1; height: 8px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+    .topic-stat-bar-fill  { height: 100%; border-radius: 99px; background: var(--primary); transition: width 0.4s ease; }
+    .topic-stat-meta { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+    .analytics-panel { background: #f8f9ff; border: 1px solid #dde3ff; border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px; }
+    .analytics-panel h3 { margin: 0 0 12px; font-size: 0.95rem; color: #1e3a8a; }
+    .q-subject-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.74rem; font-weight: 700; background: #e0e7ff; color: #3730a3; margin-right: 6px; }
+    .searchbox { display: block; width: 100%; min-height: 46px; padding: 0 16px;
+      border: 1px solid rgba(17,24,39,0.12); border-radius: 10px; margin-bottom: 16px;
+      font: inherit; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page-shell content-layout">
+
+    <header class="topbar">
+      <a href="/admin-dashboard.html" class="brand">
+        <div class="brand-text"><span>QBank</span><small>Admin Console</small></div>
+      </a>
+      <nav class="nav-actions">
+        <a href="/admin-dashboard.html" class="btn btn-secondary">Dashboard</a>
+        <a href="/admin-users.html"     class="btn btn-secondary">Users</a>
+        <a href="/admin-attempts.html"  class="btn btn-secondary">Attempts</a>
+        <a href="/dashboard.html"       class="btn btn-outline">User View</a>
+        <button id="logoutBtn" class="btn btn-danger" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <section class="welcome-banner">
+      <span class="eyebrow">Question bank</span>
+      <h1 class="page-title">Manage questions</h1>
+      <p class="welcome-note">Create, edit, flag, and bulk-upload questions. <span id="qCount">0</span> total.</p>
+    </section>
+
+  
+    <section class="card" style="margin-top: 20px;">
+      <span class="eyebrow" style="margin-bottom:12px;display:inline-block;">Filter by subject</span>
+      <div id="subjectTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="subject-tab active" data-subject="all">All Subjects</button>
+        <button class="subject-tab" data-subject="JAVA">Java</button>
+        <button class="subject-tab" data-subject="CPP">C++</button>
+        <button class="subject-tab" data-subject="SPRINGBOOT">Spring Boot</button>
+        <button class="subject-tab" data-subject="REACT">React</button>
+        <button class="subject-tab" data-subject="JAVASCRIPT">JavaScript</button>
+        <button class="subject-tab" data-subject="HTML">HTML</button>
+        <button class="subject-tab" data-subject="CSS">CSS</button>
+               <button class="subject-tab" data-subject="SQL">SQL</button>
+      </div>
+
+      <div id="analyticsPanel" class="analytics-panel" style="display:none;">
+        <h3 id="analyticsPanelTitle">📊 Topic Performance</h3>
+        <div id="topicStatsList"></div>
+      </div>
+
+      <div class="header-row" style="margin-bottom:0;">
+        <div class="inline-actions" style="flex-wrap:wrap;">
+          <button class="btn btn-secondary filter-btn active" data-filter="all">All</button>
+          <button class="btn btn-secondary filter-btn" data-filter="EASY">Easy</button>
+          <button class="btn btn-secondary filter-btn" data-filter="MEDIUM">Medium</button>
+          <button class="btn btn-secondary filter-btn" data-filter="HARD">Hard</button>
+          <button class="btn btn-secondary filter-btn" data-filter="flagged">Flagged</button>
+         <button class="btn btn-secondary filter-btn" data-filter="missed">Most missed</button>
+        </div>
+        <button id="newQBtn" class="btn btn-primary" type="button">+ New question</button>
+      </div>
+
+
+      <div id="topicFilterRow" style="display:none;margin-top:12px;align-items:center;gap:10px;flex-wrap:wrap;">
+        <label style="font-weight:600;font-size:0.88rem;">Topic:</label>
+        <div id="topicFilterBtns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+
+      <input id="searchBox" class="searchbox" placeholder="Search by topic or question text..." />
+
+      <div id="questionList" class="stat-list">
+        <p class="loading-state">Loading questions...</p>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 20px;">
+      <span class="eyebrow">Bulk import</span>
+      <h2 class="section-title">Upload CSV</h2>
+      <p class="welcome-note">Format: <code>subject,topic,difficulty,questionText,optionA,optionB,optionC,optionD,correctAnswer,explanationA,explanationB,explanationC,explanationD</code></p>
+      <form id="csvForm" enctype="multipart/form-data" style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; align-items: center;">
+        <input type="file" name="file" id="csvFile" accept=".csv" required />
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </form>
+      <div id="csvResult" style="margin-top: 12px;"></div>
+    </section>
+
+  </div>
+
+  <!-- ── Edit/Create modal ── -->
+  <div id="modal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 100; padding: 20px; overflow-y: auto;">
+    <div class="card" style="max-width: 720px; margin: 24px auto;">
+      <div class="header-row">
+        <h2 class="section-title" id="modalTitle">Edit question</h2>
+        <button id="modalClose" class="btn btn-secondary" type="button">×</button>
+      </div>
+      <form id="qForm" class="form">
+        <input type="hidden" name="id" />
+        <div class="field">
+          <label>Subject</label>
+          <select name="subject" required style="min-height:52px;padding:0 16px;border:1px solid rgba(17,24,39,0.12);border-radius:10px;background:#fff;">
+            <option value="JAVA">Java</option>
+            <option value="CPP">C++</option>
+            <option value="SPRINGBOOT">Spring Boot</option>
+            <option value="REACT">React</option>
+            <option value="JAVASCRIPT">JavaScript</option>
+            <option value="HTML">HTML</option>
+            <option value="CSS">CSS</option>
+             <option value="CSS">SQL</option>
+          </select>
+        </div>
+        <div class="field"><label>Topic</label><input name="topic" required placeholder="e.g. Variables, OOP, Hooks…" /></div>
+        <div class="field"><label>Difficulty</label>
+          <select name="difficulty" required style="min-height: 52px; padding: 0 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px; background: #fff;">
+            <option value="EASY">Easy</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HARD">Hard</option>
+          </select>
+        </div>
+        <div class="field"><label>Question text</label><textarea name="questionText" rows="3" required style="padding: 12px 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px;"></textarea></div>
+        <div class="field"><label>Option A</label><input name="optionA" required /></div>
+        <div class="field"><label>Option B</label><input name="optionB" required /></div>
+        <div class="field"><label>Option C</label><input name="optionC" required /></div>
+        <div class="field"><label>Option D</label><input name="optionD" required /></div>
+        <div class="field"><label>Correct answer</label>
+          <select name="correctAnswer" required style="min-height: 52px; padding: 0 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px; background: #fff;">
+            <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+          </select>
+        </div>
+        <div class="field"><label>A — Explanation</label>
+          <textarea name="explanationA" rows="2" style="padding: 12px 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px;"></textarea>
+        </div>
+        <div class="field"><label>B — Explanation</label>
+          <textarea name="explanationB" rows="2" style="padding: 12px 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px;"></textarea>
+        </div>
+        <div class="field"><label>C — Explanation</label>
+          <textarea name="explanationC" rows="2" style="padding: 12px 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px;"></textarea>
+        </div>
+        <div class="field"><label>D — Explanation</label>
+          <textarea name="explanationD" rows="2" style="padding: 12px 16px; border: 1px solid rgba(17,24,39,0.12); border-radius: 10px;"></textarea>
+        </div>
+        <div class="form-message" id="qMsg"></div>
+        <div class="inline-actions">
+          <button type="submit" class="btn btn-primary">Save question</button>
+          <button type="button" id="modalCancel" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  const token = localStorage.getItem("qbankToken");
+  const user  = JSON.parse(localStorage.getItem("qbankUser") || "{}");
+  const role  = user.role;
+
+  if (!token || role !== "ROLE_ADMIN") {
+    window.location.href = "/login.html";
+  }
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.clear(); window.location.href = "/login.html";
+  });
+
+  const SUBJECT_TOPICS = {
+    JAVA:       ["Variables","Data Types","Operators","Control Flow","Loops","OOP","Arrays","Strings"],
+    CPP:        ["Basics","Pointers","Arrays","Functions","OOP","Templates","STL","Memory Management"],
+    SPRINGBOOT: ["Core Concepts","REST API","JPA","Security","Testing","Configuration","Annotations","MVC"],
+    REACT:      ["JSX","Components","Props","State","Hooks","Context","Routing","Performance"],
+    JAVASCRIPT: ["Variables","Functions","Arrays","Objects","DOM","Events","Promises","ES6+"],
+    HTML:       ["Elements","Attributes","Forms","Semantics","Tables","Media","Meta","Accessibility"],
+    CSS:        ["Selectors","Box Model","Flexbox","Grid","Animations","Variables","Responsive","Pseudo-classes"],
+    SQL: [
+	    "SELECT",
+	    "WHERE",
+	    "JOIN",
+	    "GROUP BY",
+	    "Aggregate Functions",
+	    "Subqueries",
+	    "INSERT",
+	    "UPDATE",
+	    "DELETE",
+	    "Constraints",
+	    "Indexes",
+	    "Transactions",
+	    "Views",
+	    "Stored Procedures"
+	  ]
+  };
+
+  const SUBJECT_LABELS = {
+    JAVA:"Java", CPP:"C++", SPRINGBOOT:"Spring Boot", REACT:"React",
+    JAVASCRIPT:"JavaScript", HTML:"HTML", CSS:"CSS", SQL: "SQL"
+  };
+
+  const headers = { "X-Admin-Token": token, "Content-Type": "application/json" };
+  let allQuestions   = [];
+  let currentFilter  = "all";
+  let currentSubject = "all";
+  let currentTopic   = "all";
+  let searchTerm     = "";
+
+function renderAnalytics(subject, questions) {
+    const panel = document.getElementById("analyticsPanel");
+    const title = document.getElementById("analyticsPanelTitle");
+    const list  = document.getElementById("topicStatsList");
+
+    if (!subject || subject === "all") {
+      panel.style.display = "none";
+      return;
+    }
+
+    const topics = SUBJECT_TOPICS[subject] || [];
+    if (!topics.length) { panel.style.display = "none"; return; }
+
+    title.textContent = `📊 Topic Performance — ${SUBJECT_LABELS[subject] || subject}`;
+    panel.style.display = "";
+
+    const topicMap = {};
+    topics.forEach(t => { topicMap[t] = { count: 0, totalAnswered: 0, totalCorrect: 0 }; });
+
+    questions.forEach(q => {
+      const t = (q.topic || "").trim();
+      if (topicMap[t]) {
+        topicMap[t].count++;
+        topicMap[t].totalAnswered += q.timesAnswered || 0;
+        topicMap[t].totalCorrect  += q.timesCorrect  || 0;
+      }
+    });
+
+    list.innerHTML = topics.map(t => {
+      const d   = topicMap[t];
+      const acc = d.totalAnswered > 0
+        ? Math.round((d.totalCorrect / d.totalAnswered) * 100)
+        : null;
+      const barColor = acc === null ? "#9ca3af"
+        : acc >= 70 ? "#15803d"
+        : acc >= 40 ? "#d97706"
+        : "#dc2626";
+      return `
+        <div class="topic-stat-bar">
+          <div class="topic-stat-name">${esc(t)}</div>
+          <div class="topic-stat-bar-track">
+            <div class="topic-stat-bar-fill" style="width:${acc ?? 0}%;background:${barColor}"></div>
+          </div>
+          <div class="topic-stat-meta">
+            ${d.count} Q &nbsp;·&nbsp;
+            ${acc !== null ? acc + "% accuracy" : "no attempts yet"}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  document.getElementById("subjectTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".subject-tab");
+    if (!btn) return;
+    document.querySelectorAll(".subject-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentSubject = btn.dataset.subject;
+    currentTopic   = "all";
+    renderTopicFilter(currentSubject);
+    loadQuestions();
+  });
+
+  function renderTopicFilter(subject) {
+    const row  = document.getElementById("topicFilterRow");
+    const btns = document.getElementById("topicFilterBtns");
+
+    if (!subject || subject === "all") {
+      row.style.display = "none";
+      return;
+    }
+
+    const topics = SUBJECT_TOPICS[subject] || [];
+    if (!topics.length) { row.style.display = "none"; return; }
+
+    row.style.display = "flex";
+    btns.innerHTML = `<button class="subject-tab active" data-topic="all">All</button>` +
+      topics.map(t => `<button class="subject-tab" data-topic="${esc(t)}">${esc(t)}</button>`).join("");
+
+    btns.querySelectorAll(".subject-tab").forEach(b => {
+      b.addEventListener("click", () => {
+        btns.querySelectorAll(".subject-tab").forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        currentTopic = b.dataset.topic;
+        render();
+      });
+    });
+  }
+
+
+  async function loadQuestions() {
+    let url = "/api/admin/questions";
+    if (currentFilter === "flagged")     url += "?flagged=true";
+    else if (currentFilter === "poor")   url = "/api/admin/questions/poorly-performing";
+    else if (currentFilter === "missed") url = "/api/admin/questions/most-missed";
+    else if (["EASY","MEDIUM","HARD"].includes(currentFilter)) url += "?difficulty=" + currentFilter;
+
+    if (currentSubject !== "all" && !["poor","missed"].includes(currentFilter)) {
+      url += (url.includes("?") ? "&" : "?") + "subject=" + encodeURIComponent(currentSubject);
+    }
+
+    const list = document.getElementById("questionList");
+    list.innerHTML = '<p class="loading-state">Loading...</p>';
+    try {
+      const res = await fetch(url, { headers: { "X-Admin-Token": token } });
+      if (!res.ok) throw new Error("Failed to load (" + res.status + ").");
+      allQuestions = await res.json();
+      document.getElementById("qCount").textContent = allQuestions.length;
+      renderAnalytics(currentSubject, allQuestions);
+      render();
+    } catch (e) {
+      list.innerHTML = '<p class="empty-state">' + e.message + '</p>';
+    }
+  }
+
+  function render() {
+    const term = searchTerm.toLowerCase();
+    let filtered = allQuestions;
+
+    // Client-side subject filter (fallback if backend doesn't support it yet)
+    if (currentSubject !== "all") {
+      filtered = filtered.filter(q =>
+        (q.subject || "").toUpperCase() === currentSubject.toUpperCase()
+      );
+    }
+
+    // Client-side topic filter
+    if (currentTopic !== "all") {
+      filtered = filtered.filter(q =>
+        (q.topic || "").toLowerCase() === currentTopic.toLowerCase()
+      );
+    }
+
+    // Search
+    if (term) {
+      filtered = filtered.filter(q =>
+        (q.topic || "").toLowerCase().includes(term) ||
+        (q.questionText || "").toLowerCase().includes(term) ||
+        (q.subject || "").toLowerCase().includes(term)
+      );
+    }
+
+    const list = document.getElementById("questionList");
+    if (!filtered.length) { list.innerHTML = '<p class="empty-state">No questions match.</p>'; return; }
+
+    list.innerHTML = filtered.map(q => `
+      <div class="stat-line" style="gap:12px;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;">
+          <div>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px;">
+              <span class="q-subject-badge">${esc(q.subject || "—")}</span>
+              <strong>${esc(q.topic || "—")} · ${esc(q.difficulty || "—")}</strong>
+              ${q.flagged ? '<span class="status-chip warning" style="margin-left:4px;min-height:22px;padding:0 8px;font-size:0.74rem;">Flagged</span>' : ''}
+            </div>
+            <span style="display:block;color:var(--muted);font-size:0.88rem;margin-bottom:6px;">${esc((q.questionText || "").slice(0, 160))}${q.questionText && q.questionText.length > 160 ? "…" : ""}</span>
+            <div style="font-size:0.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;">
+              <span>Answered <strong>${q.timesAnswered || 0}×</strong></span>
+              <span>Accuracy <strong style="color:${accuracyColor(q.accuracyRate)}">${q.accuracyRate || 0}%</strong></span>
+              <span>Correct answer: <strong>${esc(q.correctAnswer || "—")}</strong></span>
+            </div>
+          </div>
+          <div class="inline-actions" style="align-items:flex-start;">
+            <button class="btn btn-secondary" data-edit="${q.id}">Edit</button>
+            <button class="btn btn-secondary" data-flag="${q.id}">${q.flagged ? "Unflag" : "Flag"}</button>
+            <button class="btn btn-danger" data-del="${q.id}">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function accuracyColor(rate) {
+    if (!rate) return "var(--muted)";
+    if (rate >= 70) return "var(--success)";
+    if (rate >= 40) return "#d97706";
+    return "var(--danger)";
+  }
+
+  document.getElementById("questionList").addEventListener("click", async (e) => {
+    const t = e.target.closest("[data-edit], [data-flag], [data-del]");
+    if (!t) return;
+    if (t.dataset.edit) openEdit(t.dataset.edit);
+    else if (t.dataset.flag) toggleFlag(t.dataset.flag);
+    else if (t.dataset.del) deleteQ(t.dataset.del);
+  });
+
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      loadQuestions();
+    });
+  });
+
+  document.getElementById("searchBox").addEventListener("input", (e) => {
+    searchTerm = e.target.value; render();
+  });
+
+
+  const modal = document.getElementById("modal");
+  const qForm = document.getElementById("qForm");
+
+  function openModal() { modal.style.display = "block"; }
+  function closeModal() { modal.style.display = "none"; document.getElementById("qMsg").textContent = ""; }
+  document.getElementById("modalClose").onclick  = closeModal;
+  document.getElementById("modalCancel").onclick = closeModal;
+
+  document.getElementById("newQBtn").onclick = () => {
+    qForm.reset();
+    qForm.id.value = "";
+    document.getElementById("modalTitle").textContent = "New question";
+  
+    if (currentSubject !== "all") {
+      qForm.subject.value = currentSubject;
+    }
+    openModal();
+  };
+
+  function openEdit(id) {
+    const q = allQuestions.find(x => String(x.id) === String(id));
+    if (!q) return;
+    qForm.reset();
+    qForm.id.value            = q.id;
+    qForm.subject.value       = (q.subject || "JAVA").toUpperCase();
+    qForm.topic.value         = q.topic || "";
+    qForm.difficulty.value    = (q.difficulty || "EASY").toUpperCase();
+    qForm.questionText.value  = q.questionText || "";
+    qForm.optionA.value       = q.optionA || "";
+    qForm.optionB.value       = q.optionB || "";
+    qForm.optionC.value       = q.optionC || "";
+    qForm.optionD.value       = q.optionD || "";
+    qForm.correctAnswer.value = (q.correctAnswer || "A").toUpperCase();
+    qForm.explanationA.value  = q.explanationA || "";
+    qForm.explanationB.value  = q.explanationB || "";
+    qForm.explanationC.value  = q.explanationC || "";
+    qForm.explanationD.value  = q.explanationD || "";
+    document.getElementById("modalTitle").textContent = "Edit question #" + q.id;
+    openModal();
+  }
+
+  qForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(qForm);
+    const body = {};
+    fd.forEach((v, k) => { if (k !== "id") body[k] = v; });
+    const id = fd.get("id");
+    const url = id ? "/api/admin/questions/" + id : "/api/admin/questions";
+    const method = id ? "PUT" : "POST";
+    try {
+      const res = await fetch(url, { method, headers, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed.");
+      closeModal();
+      await loadQuestions();
+    } catch (err) {
+      document.getElementById("qMsg").textContent = err.message;
+      document.getElementById("qMsg").className = "form-message error";
+    }
+  });
+
+  async function toggleFlag(id) {
+    await fetch("/api/admin/questions/" + id + "/flag", { method: "PATCH", headers });
+    await loadQuestions();
+  }
+  async function deleteQ(id) {
+    if (!confirm("Delete this question? This cannot be undone.")) return;
+    await fetch("/api/admin/questions/" + id, { method: "DELETE", headers });
+    await loadQuestions();
+  }
+
+  document.getElementById("csvForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const file = document.getElementById("csvFile").files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    const result = document.getElementById("csvResult");
+    result.innerHTML = '<p class="loading-state">Uploading...</p>';
+    try {
+      const res = await fetch("/api/admin/questions/upload-csv", {
+        method: "POST", headers: { "X-Admin-Token": token }, body: fd
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      const errs = (data.errors || []).slice(0, 5).map(e => `<li>${esc(e)}</li>`).join("");
+      result.innerHTML = `
+        <p class="form-message success">Imported ${data.imported} question${data.imported === 1 ? "" : "s"}.${(data.errors || []).length ? " " + data.errors.length + " row(s) skipped." : ""}</p>
+        ${errs ? '<ul style="color: var(--muted); font-size: 0.88rem;">' + errs + '</ul>' : ''}
+      `;
+      document.getElementById("csvFile").value = "";
+      await loadQuestions();
+    } catch (err) {
+      result.innerHTML = '<p class="form-message error">' + err.message + '</p>';
+    }
+  });
+
+  function esc(s) {
+    return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  }
+
+  loadQuestions();
+  </script>
+</body>
+</html>

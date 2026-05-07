@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz | Online Question Bank System</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* ── Setup screen ── */
+    .subject-screen { padding: 0; }
+
+    .subject-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #2d3a8c; color: #fff; padding: 10px 20px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .subject-topbar-title { font-size: 1rem; font-weight: 700; }
+    .subject-body { padding: 20px; }
+
+    .subject-cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px; margin: 14px 0;
+    }
+    .subject-card {
+      background: #fdfdf5; border: 2px solid #e5e7eb; border-radius: var(--radius-md);
+      padding: 14px 16px; cursor: pointer; user-select: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .subject-card:hover { border-color: #2d3a8c; box-shadow: 0 4px 14px rgba(45,58,140,0.12); }
+    .subject-card.selected { border-color: #2d3a8c; background: #eef0f9; box-shadow: 0 4px 14px rgba(45,58,140,0.16); }
+    .subject-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .subject-card-icon {
+      width: 36px; height: 36px; border-radius: 8px; background: #2d3a8c; color: #fff;
+      display: grid; place-items: center; font-size: 0.8rem; font-weight: 800; flex-shrink: 0;
+    }
+    .subject-card-name { font-weight: 700; font-size: 0.95rem; }
+    .subject-card-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; margin-bottom: 6px;
+    }
+    .subject-card-label {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.8rem; color: #4b5563; white-space: nowrap;
+    }
+    .subject-card-label svg { flex-shrink: 0; opacity: 0.6; }
+    .subject-card select {
+      flex: 1; padding: 4px 7px; font-size: 0.8rem;
+      border: 1px solid #d1d5db; border-radius: 6px;
+      background: #fff; cursor: pointer; max-width: 120px;
+    }
+
+    .subject-options-bar {
+      border-top: 1px solid var(--border); padding: 14px 20px;
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    }
+    .options-group { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+    .options-group label { font-weight: 600; white-space: nowrap; }
+    .options-group select {
+      padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 8px;
+      background: #fff; font-size: 0.86rem;
+    }
+    .options-group .checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .options-group input[type="checkbox"] { width: 16px; height: 16px; accent-color: #7c3aed; }
+
+    .duration-hint { font-size: 0.8rem; color: var(--muted); margin-left: 4px; }
+
+    .select-subjects-btn {
+      background: #2d3a8c; color: #fff; border: none;
+      padding: 8px 18px; border-radius: 8px; font-weight: 700;
+      font-size: 0.86rem; cursor: pointer;
+    }
+    .start-btn-wrap { margin-left: auto; }
+    .start-btn {
+      background: #7c3aed; color: #fff; border: none;
+      padding: 10px 26px; border-radius: 9px; font-weight: 700;
+      font-size: 0.93rem; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .start-btn:hover { background: #6d28d9; transform: scale(1.03); }
+    .start-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .no-subjects-msg {
+      text-align: center; padding: 40px 20px; color: var(--muted);
+      border: 2px dashed var(--border); border-radius: var(--radius-md);
+    }
+
+    /* ── Quiz screen layout: exactly like the picture ── */
+    .quiz-main-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* Left sidebar - Question numbers */
+    .quiz-sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      position: sticky;
+      top: 20px;
+    }
+    .quiz-sidebar-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .q-nav-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .q-nav-dot {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--text);
+    }
+    .q-nav-dot:hover { border-color: var(--primary); color: var(--primary); }
+    .q-nav-dot.current { 
+      background: #4285f4; 
+      border-color: #4285f4; 
+      color: #fff; 
+    }
+    .q-nav-dot.answered { 
+      background: rgba(79,70,229,0.12); 
+      border-color: rgba(79,70,229,0.3); 
+      color: var(--primary); 
+    }
+    .q-nav-dot.current.answered { background: #4285f4; color: #fff; }
+
+    /* Right area with subject tabs and question */
+    .quiz-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Subject tabs - horizontal across top */
+    .quiz-subject-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .quiz-subject-tab {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--text);
+    }
+    .quiz-subject-tab:hover { border-color: var(--primary); color: var(--primary); }
+    .quiz-subject-tab.active { 
+      background: #1a73e8; 
+      border-color: #1a73e8; 
+      color: #fff; 
+    }
+
+    /* Question card area */
+    .quiz-question-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+
+    /* Question meta badges */
+    .question-meta {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .q-subject-badge {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      border-radius: 999px; font-size: 0.74rem; font-weight: 700;
+      background: #e3f2fd; color: #1565c0;
+    }
+    .q-topic-badge {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      border-radius: 999px; font-size: 0.74rem; font-weight: 600;
+      background: #f3f4f6; color: #4b5563;
+    }
+    .q-diff-badge {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      border-radius: 999px; font-size: 0.74rem; font-weight: 700;
+    }
+    .diff-easy { background: #dcfce7; color: #166534; }
+    .diff-medium { background: #fef9c3; color: #854d0e; }
+    .diff-hard { background: #fee2e2; color: #991b1b; }
+    .diff-mixed { background: #ede9fe; color: #5b21b6; }
+
+    /* Question text */
+    .question-text { 
+      font-size: 1.1rem; 
+      margin: 0 0 20px; 
+      line-height: 1.5; 
+      font-weight: 500;
+    }
+
+    /* Options - styled like the picture */
+    .option-list { display: grid; gap: 10px; margin-bottom: 20px; }
+    .option-item { position: relative; }
+    .option-item input { position: absolute; opacity: 0; pointer-events: none; }
+    .option-label {
+      width: 100%; display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: #fff;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .option-letter {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(66,133,244,0.1); color: #1a73e8;
+      display: grid; place-items: center;
+      font-size: 0.85rem; font-weight: 800; flex-shrink: 0;
+    }
+    .option-item input:checked + .option-label {
+      border-color: #4285f4; background: rgba(66,133,244,0.05);
+    }
+    .option-item input:checked + .option-label .option-letter {
+      background: #4285f4; color: #fff;
+    }
+
+    /* Navigation buttons - like the picture */
+    .quiz-nav-buttons {
+      display: flex; justify-content: center; gap: 12px;
+      margin-top: 24px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .quiz-nav-buttons .btn {
+      min-height: 44px; padding: 0 24px; font-size: 0.9rem;
+    }
+    .btn-previous { background: #6c757d; color: #fff; }
+    .btn-previous:hover { background: #5a6268; }
+    .btn-submit { background: #dc3545; color: #fff; }
+    .btn-submit:hover { background: #c82333; }
+    .btn-next { background: #007bff; color: #fff; }
+    .btn-next:hover { background: #0056b3; }
+
+    /* Timer warning */
+    .timer-warn { background: rgba(220,38,38,0.12) !important; color: var(--danger) !important; }
+
+    @media (max-width: 860px) {
+      .quiz-main-layout { grid-template-columns: 1fr; }
+      .quiz-sidebar { position: static; }
+      .q-nav-grid { max-height: 200px; }
+    }
+    @media (max-width: 640px) {
+      .subject-cards-grid { grid-template-columns: 1fr; }
+      .subject-options-bar { flex-direction: column; align-items: stretch; }
+      .start-btn-wrap { margin-left: 0; }
+      .quiz-subject-tabs { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body data-page="quiz">
+  <div class="content-layout">
+    <div class="page-shell">
+      <header class="topbar">
+        <a href="/home.html" class="brand">
+          <img class="brand-mark" src="/images/quiz-logo.jpg" alt="Quiz logo">
+          <span class="brand-text"><span>Online Question Bank</span><small>Return home</small></span>
+        </a>
+        <nav class="nav-actions">
+          <a class="btn btn-secondary" href="/dashboard.html">Dashboard</a>
+          <a class="btn btn-secondary" href="/history.html">History</a>
+          <a class="btn btn-secondary" href="/leaderboard.html">Leaderboard</a>
+          <button class="btn btn-danger" type="button" data-action="logout">Logout</button>
+        </nav>
+      </header>
+
+      <main id="setupScreen" class="card subject-screen">
+        <div class="subject-topbar">
+          <span class="subject-topbar-title">📚 Select Subjects &amp; Configure Quiz</span>
+          <button class="select-subjects-btn" id="selectAllBtn" type="button">Select All</button>
+        </div>
+
+        <div class="subject-body">
+          <p style="font-size:0.86rem;color:var(--muted);margin:0 0 4px">
+            Click a subject card to include it. Adjust questions, difficulty &amp; topic per subject.
+          </p>
+
+          <div class="subject-cards-grid" id="subjectCardsGrid"></div>
+
+          <div id="noSubjectsMsg" class="no-subjects-msg" style="display:none;">
+            No subjects available. Please ask an admin to add questions.
+          </div>
+        </div>
+
+        <div class="subject-options-bar">
+          <div class="options-group">
+            <label for="selectMode">Mode</label>
+            <select id="selectMode">
+              <option value="EXAM">Exam</option>
+              <option value="PRACTICE">Practice</option>
+              <option value="STUDY">Study</option>
+            </select>
+          </div>
+          <div class="options-group" id="durationRow">
+            <label for="examDuration">Duration</label>
+            <select id="examDuration">
+              <option value="20">20 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+              <option value="240">4 hours</option>
+              <option value="300">5 hours</option>
+              <option value="400">6h 40m</option>
+            </select>
+          </div>
+          <div class="options-group">
+            <label class="checkbox-label" for="shuffleQ">
+              <input type="checkbox" id="shuffleQ" checked> Shuffle Questions
+            </label>
+          </div>
+          <div class="options-group">
+            <label class="checkbox-label" for="shuffleO">
+              <input type="checkbox" id="shuffleO" checked> Shuffle Options
+            </label>
+          </div>
+          <div class="options-group">
+            <span id="durationHint" class="duration-hint">0 questions · choose duration below</span>
+          </div>
+          <div class="start-btn-wrap">
+            <button class="start-btn" id="startQuizBtn" type="button" disabled>
+              ▶ Start Quiz
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <!-- ══ QUIZ SCREEN ══ -->
+      <main id="quizScreen" style="display:none">
+        <!-- Top header -->
+        <div class="card" style="margin-bottom:16px;padding:16px 24px;">
+          <div class="header-row" style="margin-bottom:0">
+            <div>
+              <span class="eyebrow" id="quizModeLabel">Exam Mode</span>
+              <h1 class="page-title" style="margin:4px 0 0;font-size:1.6rem">Take Quiz</h1>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="status-chip success" id="questionCount">0 questions</div>
+              <div class="status-chip" id="timerChip" style="display:none;font-variant-numeric:tabular-nums;min-width:72px">--:--</div>
+            </div>
+          </div>
+          <div class="progress-bar-wrap" style="margin-top:12px">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <p id="progressLabel" style="font-size:0.82rem;color:var(--muted);margin:6px 0 0">Question 1 of 10</p>
+        </div>
+
+        <!-- Quiz layout: left sidebar + right content -->
+        <div class="quiz-main-layout">
+          <!-- Left sidebar: question numbers -->
+          <aside class="quiz-sidebar">
+            <div class="quiz-sidebar-title">Questions</div>
+            <div class="q-nav-grid" id="questionNavGrid"></div>
+          </aside>
+
+          <!-- Right content: subject tabs + question -->
+          <div class="quiz-content">
+            <!-- Subject tabs across top -->
+            <div class="quiz-subject-tabs" id="quizSubjectTabBar"></div>
+
+            <!-- Question area -->
+            <div class="quiz-question-area">
+              <div id="slideContainer"></div>
+              <div class="form-message" id="quizMessage" aria-live="polite" style="margin-top:12px"></div>
+
+              <!-- Navigation buttons -->
+              <div class="quiz-nav-buttons">
+                <button id="prevBtn" class="btn btn-previous" type="button" disabled>Previous</button>
+                <button id="nextBtn" class="btn btn-next" type="button">Next</button>
+                <button id="submitQuizButton" class="btn btn-submit" type="button" style="display:none">Submit</button>
+                <button id="endTestBtn" class="btn btn-danger" type="button">End Test</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ══ REVIEW SCREEN ══ -->
+      <main id="reviewScreen" class="card quiz-card" style="display:none">
+        <span class="eyebrow">Review</span>
+        <h1 class="page-title">Quiz Review</h1>
+        <div id="reviewContainer" class="question-list"></div>
+        <div class="inline-actions" style="margin-top:24px">
+          <a class="btn btn-primary" href="/dashboard.html">Back to Dashboard</a>
+          <a class="btn btn-outline" href="/quiz.html">Try Again</a>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | Online Question Bank System</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="register">
+  <main class="page-center">
+    <div class="auth-shell">
+      <div class="auth-header">
+        <a href="/home.html" class="brand">
+          <img class="brand-mark" src="/images/quiz-logo.jpg" alt="Quiz logo">
+          <span class="brand-text">
+            <span>Online Question Bank</span>
+            <small>Back to homepage</small>
+          </span>
+        </a>
+      </div>
+
+      <section class="auth-card">
+        <span class="eyebrow">Create account</span>
+        <h1 class="page-title">Register</h1>
+        <p class="page-subtitle">Fill in your details to create your Online Question Bank account.</p>
+
+        <form id="registerForm" class="form" novalidate>
+          <div class="field">
+            <label for="fullName">Full Name</label>
+            <input id="fullName" name="fullName" type="text" placeholder="Enter your full name">
+            <span class="field-error" data-error-for="fullName"></span>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="Enter your email address">
+            <span class="field-error" data-error-for="email"></span>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="Create a password">
+            <span class="field-error" data-error-for="password"></span>
+          </div>
+
+          <div class="form-message" aria-live="polite"></div>
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+
+        <p class="footer-note">Already have an account? <a class="muted-link" href="/login.html">Login here</a></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

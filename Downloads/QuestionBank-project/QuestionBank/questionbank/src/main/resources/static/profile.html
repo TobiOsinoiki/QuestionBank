@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | Online Question Bank System</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-page="profile">
+  <div class="content-layout">
+    <div class="page-shell">
+      <header class="topbar">
+        <a href="/home.html" class="brand">
+          <img class="brand-mark" src="/images/quiz-logo.jpg" alt="Quiz logo">
+          <span class="brand-text">
+            <span>Online Question Bank</span>
+            <small>Return home</small>
+          </span>
+        </a>
+        <nav class="nav-actions">
+          <a class="btn btn-secondary" href="/dashboard.html">Dashboard</a>
+          <a class="btn btn-secondary" href="/quiz.html">Take Quiz</a>
+          <a class="btn btn-secondary" href="/history.html">History</a>
+          <a class="btn btn-secondary" href="/leaderboard.html">Leaderboard</a>
+          <button class="btn btn-danger" type="button" data-action="logout">Logout</button>
+        </nav>
+      </header>
+
+      <main class="card quiz-card">
+        <span class="eyebrow">Account</span>
+        <h1 class="page-title">Your Profile</h1>
+        <p class="page-subtitle">Update your display name or change your password.</p>
+
+        <form id="profileForm" class="form" novalidate style="max-width:480px;margin-top:24px">
+          <div class="field">
+            <label for="fullName">Full Name</label>
+            <input id="fullName" name="fullName" type="text" placeholder="Your full name">
+            <span class="field-error" data-error-for="fullName"></span>
+          </div>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" disabled style="opacity:0.6;cursor:not-allowed">
+            <span style="font-size:0.82rem;color:var(--muted)">Email cannot be changed.</span>
+          </div>
+
+          <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+          <p style="font-weight:600;font-size:0.94rem;margin:0 0 4px">Change Password</p>
+          <p style="font-size:0.85rem;color:var(--muted);margin:0 0 12px">Leave blank to keep your current password.</p>
+
+          <div class="field">
+            <label for="oldPassword">Current Password</label>
+            <input id="oldPassword" name="oldPassword" type="password" placeholder="Enter current password">
+            <span class="field-error" data-error-for="oldPassword"></span>
+          </div>
+
+          <div class="field">
+            <label for="newPassword">New Password</label>
+            <input id="newPassword" name="newPassword" type="password" placeholder="Enter new password">
+            <span class="field-error" data-error-for="newPassword"></span>
+          </div>
+
+          <div class="form-message" aria-live="polite"></div>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+      </main>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

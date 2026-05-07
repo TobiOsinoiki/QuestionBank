@@ -1,0 +1,75 @@
+package com.tobi.qbank.controller;
+
+import com.tobi.qbank.entity.Question;
+import com.tobi.qbank.repository.QuestionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api")
+public class QuestionController {
+
+    @Autowired
+    private QuestionRepository questionRepository;
+
+    @GetMapping("/questions/random")
+    public ResponseEntity<?> getRandomQuestions() {
+        List<Question> questions = questionRepository.findRandomQuestions();
+
+        if (questions.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+
+        // Map to the shape app.js expects: { id, text, options: [{label, value}] }
+        List<Map<String, Object>> response = questions.stream().map(q -> Map.<String, Object>of(
+            "id", q.getId(),
+            "text", q.getQuestionText(),
+            "options", List.of(
+                Map.of("label", q.getOptionA(), "value", "A"),
+                Map.of("label", q.getOptionB(), "value", "B"),
+                Map.of("label", q.getOptionC(), "value", "C"),
+                Map.of("label", q.getOptionD(), "value", "D")
+            )
+        )).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/submit")
+    public ResponseEntity<?> submitQuiz(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> answers = (List<Map<String, Object>>) body.get("answers");
+
+        if (answers == null || answers.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "No answers submitted."));
+        }
+
+        int correct = 0;
+        int total = answers.size();
+
+        for (Map<String, Object> answer : answers) {
+            Long questionId = Long.parseLong(answer.get("questionId").toString());
+            String submitted = answer.get("answer").toString();
+
+            Question question = questionRepository.findById(questionId).orElse(null);
+            if (question != null && question.getCorrectAnswer().equalsIgnoreCase(submitted)) {
+                correct++;
+            }
+        }
+
+        double percentage = total > 0 ? (correct * 100.0) / total : 0;
+        boolean passed = percentage >= 50;
+
+        return ResponseEntity.ok(Map.of(
+            "correctAnswers", correct,
+            "totalQuestions", total,
+            "percentage", percentage,
+            "passed", passed,
+            "message", passed ? "Great work. You passed the quiz." : "Keep practicing and try again."
+        ));
+    }}
